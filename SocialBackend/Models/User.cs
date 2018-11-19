@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace SocialBackend.Model
+namespace SocialBackend.Models
 {
     public class User
     {
@@ -11,6 +11,7 @@ namespace SocialBackend.Model
         public string username { get; set; }
         public string emailAddress { get; set; }
         public string password { get; set; }
+        public string authToken { get; set; }
         public Boolean online { get; set; }
 
     }

@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SocialBackend.Model;
 using SocialBackend.Models;
 
 namespace SocialBackend.Controllers
@@ -91,8 +90,15 @@ namespace SocialBackend.Controllers
                 return BadRequest(ModelState);
             }
 
+            user.authToken = Guid.NewGuid().ToString();
             _context.User.Add(user);
             await _context.SaveChangesAsync();
+
+            CookieOptions options = new CookieOptions();
+
+            options.Expires = DateTime.Now.AddHours(1);
+
+            Response.Cookies.Append("cookie", user.authToken, options);
 
             return CreatedAtAction("GetUser", new { id = user.id }, user);
         }

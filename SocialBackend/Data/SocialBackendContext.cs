@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using SocialBackend.Model;
 
 namespace SocialBackend.Models
 {
@@ -14,6 +13,6 @@ namespace SocialBackend.Models
         {
         }
 
-        public DbSet<SocialBackend.Model.User> User { get; set; }
+        public DbSet<SocialBackend.Models.User> User { get; set; }
     }
 }
