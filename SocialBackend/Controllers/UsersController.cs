@@ -128,7 +128,7 @@ namespace SocialBackend.Controllers
             options.Expires = DateTime.Now.AddHours(1);
             Response.Cookies.Append("cookie", user.authToken, options);
 
-            return CreatedAtAction("GetUser", new { id = user.id });
+            return Created("GetUser", new { id = user.id });
         }
 
         // POST: api/Users/login
