@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -91,6 +92,9 @@ namespace SocialBackend.Controllers
             }
 
             user.authToken = Guid.NewGuid().ToString();
+
+            user.password = saltedHashedPassword(user.password);
+
             _context.User.Add(user);
             await _context.SaveChangesAsync();
 
@@ -100,7 +104,38 @@ namespace SocialBackend.Controllers
 
             Response.Cookies.Append("cookie", user.authToken, options);
 
-            return CreatedAtAction("GetUser", new { id = user.id }, user);
+            return CreatedAtAction("GetUser", new { id = user.id });
+        }
+
+        // POST: api/Users/login
+        [HttpPost("login")]
+        public async Task<IActionResult> login([FromBody] User user)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            // var authToken = await _context.User.Where(u => u.username == user.username && u.password == user.password).Select(u => u.authToken).FirstOrDefaultAsync();
+            var localUser = await _context.User.Where(u => u.username == user.username).FirstOrDefaultAsync();
+
+            if (localUser == null)
+            {
+                return NotFound();
+            }
+            
+            if (!passCheck(user.password, localUser.password))
+            {
+                return NotFound();
+            }
+
+            CookieOptions options = new CookieOptions();
+
+            options.Expires = DateTime.Now.AddHours(1);
+
+            Response.Cookies.Append("cookie", localUser.authToken, options);
+
+            return Ok();
         }
 
         // DELETE: api/Users/5
@@ -127,6 +162,39 @@ namespace SocialBackend.Controllers
         private bool UserExists(int id)
         {
             return _context.User.Any(e => e.id == id);
+        }
+
+        private string saltedHashedPassword(string password)
+        {
+            byte[] salt;
+            new RNGCryptoServiceProvider().GetBytes(salt = new byte[16]);
+
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 1000);
+            byte[] hash = pbkdf2.GetBytes(20);
+
+            byte[] hashBytes = new byte[36];
+            Array.Copy(salt, 0, hashBytes, 0, 16);
+            Array.Copy(hash, 0, hashBytes, 16, 20);
+            string savedPasswordHash = Convert.ToBase64String(hashBytes);
+
+            return savedPasswordHash;
+        }
+
+        private bool passCheck(string password, string savedPasswordHash)
+        {
+            /* Extract the bytes */
+            byte[] hashBytes = Convert.FromBase64String(savedPasswordHash);
+            /* Get the salt */
+            byte[] salt = new byte[16];
+            Array.Copy(hashBytes, 0, salt, 0, 16);
+            /* Compute the hash on the password the user entered */
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 1000);
+            byte[] hash = pbkdf2.GetBytes(20);
+            /* Compare the results */
+            for (int i = 0; i < 20; i++)
+                if (hashBytes[i + 16] != hash[i])
+                    return false;
+            return true;
         }
     }
 }
