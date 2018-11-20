@@ -36,7 +36,7 @@ namespace SocialBackend
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info { Title = "MemeBank", Version = "v1" });
+                c.SwaggerDoc("v1", new Info { Title = "SocialWork", Version = "v1" });
             });
         }
 

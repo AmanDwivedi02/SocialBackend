@@ -23,16 +23,34 @@ namespace SocialBackend.Controllers
 
         // GET: api/Users
         [HttpGet]
-        public IEnumerable<User> GetUser()
+        public async Task<IActionResult> checkLoggedIn()
         {
-            return _context.User;
+            if (Request.Cookies["cookie"] != null)
+            {
+                if (await checkAuthorisation(Request.Cookies["cookie"]))
+                {
+                    return Ok();
+                } else
+                {
+                    return Unauthorized();
+                }
+            }
+            return Unauthorized();
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUser([FromRoute] int id)
         {
-            if (!ModelState.IsValid)
+            if (Request.Cookies["cookie"] == null)
+            {
+                return Unauthorized();
+            }
+            else if (!await checkAuthorisation(Request.Cookies["cookie"]))
+            {
+                return Unauthorized();
+            }
+            else if(!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -51,7 +69,15 @@ namespace SocialBackend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutUser([FromRoute] int id, [FromBody] User user)
         {
-            if (!ModelState.IsValid)
+            if (Request.Cookies["cookie"] == null)
+            {
+                return Unauthorized();
+            }
+            else if (!await checkAuthorisation(Request.Cookies["cookie"]))
+            {
+                return Unauthorized();
+            }
+            else if(!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -99,9 +125,7 @@ namespace SocialBackend.Controllers
             await _context.SaveChangesAsync();
 
             CookieOptions options = new CookieOptions();
-
             options.Expires = DateTime.Now.AddHours(1);
-
             Response.Cookies.Append("cookie", user.authToken, options);
 
             return CreatedAtAction("GetUser", new { id = user.id });
@@ -142,7 +166,15 @@ namespace SocialBackend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser([FromRoute] int id)
         {
-            if (!ModelState.IsValid)
+            if (Request.Cookies["cookie"] == null)
+            {
+                return Unauthorized();
+            }
+            else if (!await checkAuthorisation(Request.Cookies["cookie"]))
+            {
+                return Unauthorized();
+            }
+            else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -196,5 +228,19 @@ namespace SocialBackend.Controllers
                     return false;
             return true;
         }
+
+        private async Task<bool> checkAuthorisation(string cookieValue)
+        {
+            var localUser = await _context.User.Where(u => u.authToken == cookieValue).FirstOrDefaultAsync();
+            if (localUser == null)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
     }
 }
