@@ -27,6 +27,25 @@ namespace SocialBackend.Models
                         });
                 }
                 context.SaveChanges();
+                if (context.Todo.Count() == 0)
+                {
+                    context.Todo.AddRange(
+                        new Todo
+                        {
+                            task = "Finish coding todo API",
+                            dueDate = DateTime.Now.AddDays(1),
+                            complete = false,
+                            user = context.User.FirstOrDefault()
+                        },
+                        new Todo
+                        {
+                            task = "Finish social work app",
+                            dueDate = DateTime.Now.AddDays(2),
+                            complete = false,
+                            user = context.User.FirstOrDefault()
+                        });
+                }
+                context.SaveChanges();
             }
         }
     }
