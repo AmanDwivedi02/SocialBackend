@@ -12,6 +12,8 @@ variables:
 steps:
 - script: dotnet build --configuration $(buildConfiguration)
   displayName: 'dotnet build $(buildConfiguration)'
+- script: ls *Tests*/*.csproj | xargs -L1 dotnet test --logger:trx
+  displayName: 'dotnet test $(buildConfiguration)'
 - task: DotNetCoreCLI@2
   inputs:
     command: publish

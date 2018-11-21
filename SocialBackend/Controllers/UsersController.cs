@@ -186,7 +186,7 @@ namespace SocialBackend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser([FromRoute] int id)
         {
-            if (_cookieService.getCookieValue(HttpContext) == "")
+            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
             }
@@ -194,6 +194,7 @@ namespace SocialBackend.Controllers
             {
                 return Unauthorized();
             }
+
             else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -203,6 +204,11 @@ namespace SocialBackend.Controllers
             if (user == null)
             {
                 return NotFound();
+            }
+
+            if (user.authToken != _cookieService.getCookieValue(HttpContext))
+            {
+                return Unauthorized();
             }
 
             _context.User.Remove(user);

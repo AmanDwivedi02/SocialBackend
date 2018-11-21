@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SocialBackend.Controllers;
 using SocialBackend.Data;
@@ -64,7 +63,7 @@ namespace SocialBackendUnitTests
 
                 users.Add(userA);
 
-                User userB= new User()
+                User userB = new User()
                 {
                     username = usernames[1],
                     emailAddress = emails[1],
@@ -344,14 +343,14 @@ namespace SocialBackendUnitTests
         {
             using (var context = new SocialBackendContext(options))
             {
-                
+
                 // Given
                 i = 1; //
                 IQueryable<User> _user = from u in context.User
                                          orderby u.id descending
                                          select u;
                 var originalUser = await _user.AsNoTracking().FirstOrDefaultAsync();
-                User incorrectUser = await context.User.FindAsync(originalUser.id-1);
+                User incorrectUser = await context.User.FindAsync(originalUser.id - 1);
                 int userId = originalUser.id;
                 string username = usernames[i];
                 string password = passwords[i];
@@ -359,7 +358,7 @@ namespace SocialBackendUnitTests
                 // new user has id one before user we want to edit
                 User userA = new User
                 {
-                    id = userId-1,
+                    id = userId - 1,
                     username = username,
                     password = password,
                     emailAddress = emailAddress
@@ -369,7 +368,7 @@ namespace SocialBackendUnitTests
                 ICookieService fakeCookie = new FakeCookieService();
                 UsersController usersController = new UsersController(context, fakeCookie);
                 var resultA = await usersController.UpdateUser(userId, userA);
-                
+
                 // Then
                 Assert.IsNotNull(resultA);
                 Assert.IsInstanceOfType(resultA, typeof(BadRequestResult));
@@ -392,7 +391,7 @@ namespace SocialBackendUnitTests
                 Assert.AreEqual(incorrectUser.authToken, dbUser.authToken);
                 Assert.AreEqual(incorrectUser.online, dbUser.online);
 
-                
+
             }
         }
 
@@ -449,7 +448,7 @@ namespace SocialBackendUnitTests
                 Assert.AreEqual(userA.authToken, dbUser.authToken);
                 Assert.AreEqual(userA.online, dbUser.online);
 
-                
+
             }
         }
 
@@ -494,6 +493,118 @@ namespace SocialBackendUnitTests
                 Assert.AreEqual(userA.emailAddress, dbUser.emailAddress);
                 Assert.AreEqual(userA.authToken, dbUser.authToken);
                 Assert.AreEqual(userA.online, dbUser.online);
+            }
+        }
+
+        [TestMethod]
+        public async Task TestDeleteNoCookie()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 3; //
+                User originalUser = await context.User.AsNoTracking().FirstAsync();
+                int userId = originalUser.id;
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                UsersController usersController = new UsersController(context, fakeCookie);
+                var resultA = await usersController.DeleteUser(userId);
+
+                // Then
+                Assert.IsNotNull(resultA);
+                Assert.IsInstanceOfType(resultA, typeof(UnauthorizedResult));
+                Assert.IsNotNull(await context.User.AsNoTracking().Where(u => u.id == userId).FirstOrDefaultAsync());
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNonAuthorisedDelete()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 2;
+                IQueryable<User> _user = from u in context.User
+                                         orderby u.id ascending
+                                         select u;
+                var originalUser = await _user.AsNoTracking().FirstOrDefaultAsync();
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                UsersController usersController = new UsersController(context, fakeCookie);
+                var result = await usersController.DeleteUser(originalUser.id);
+
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+
+                originalUser = await _user.AsNoTracking().FirstOrDefaultAsync();
+
+                Assert.IsNotNull(originalUser);
+            }
+        }
+
+        [TestMethod]
+        public async Task TestDeleteIncorrectUser()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 0; //
+                IQueryable<User> _user = from u in context.User
+                                         orderby u.id ascending
+                                         select u;
+                var originalUser = await _user.AsNoTracking().FirstOrDefaultAsync();
+                int userId = originalUser.id;
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                UsersController usersController = new UsersController(context, fakeCookie);
+                var resultA = await usersController.DeleteUser(userId + 1);
+
+                // Then
+                Assert.IsNotNull(resultA);
+                Assert.IsInstanceOfType(resultA, typeof(UnauthorizedResult));
+
+                _user = from u in context.User
+                        orderby u.id descending
+                        select u;
+
+                var nonDeletedUser = await _user.AsNoTracking().FirstOrDefaultAsync();
+
+                Assert.IsNotNull(nonDeletedUser);
+            }
+        }
+
+        [TestMethod]
+        public async Task TestDelete()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 0;
+                IQueryable<User> _user = from u in context.User
+                                         orderby u.id ascending
+                                         select u;
+                var originalUser = await _user.AsNoTracking().FirstOrDefaultAsync();
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                UsersController usersController = new UsersController(context, fakeCookie);
+                var result = await usersController.DeleteUser(originalUser.id) as IActionResult;
+
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+
+                var okObject = result as OkObjectResult;
+                originalUser = okObject.Value as User;
+                originalUser = await context.User.Where(u => u.id == originalUser.id).FirstOrDefaultAsync();
+
+                Assert.IsNull(originalUser);
             }
         }
     }
