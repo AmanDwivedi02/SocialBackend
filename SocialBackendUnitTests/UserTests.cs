@@ -21,11 +21,11 @@ namespace SocialBackendUnitTests
             .UseInMemoryDatabase(databaseName: "testDatabase")
             .Options;
 
-        public static readonly IList<string> usernames = new List<string> { "userA", "userB", "userC" };
-        public static readonly IList<string> emails = new List<string> { "userA@user.com", "userB@user.com", "userC@user.com" };
-        public static readonly IList<string> hashedPasswords = new List<string> { "0AQfVI32kJ7bXQAJL9Xq1sHIVSU5mYJ/pBJuhp+4bPa6aV2M", "dHG8b7jneWJKaH33jqcKJEcxVa8pSLiTMo255WgDEbLvSJRq", "nUZNT1jL+uLIoileVsnXXTmOzb5pgnhZJeQyXmDubZhfdBZx" };
-        public static readonly IList<string> passwords = new List<string> { "abcd", "blah", "string" };
-        public static readonly IList<string> authTokens = new List<string> { Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), Guid.NewGuid().ToString() };
+        public static readonly IList<string> usernames = new List<string> { "userA", "userB", "userC", null };
+        public static readonly IList<string> emails = new List<string> { "userA@user.com", "userB@user.com", "userC@user.com", null };
+        public static readonly IList<string> hashedPasswords = new List<string> { "0AQfVI32kJ7bXQAJL9Xq1sHIVSU5mYJ/pBJuhp+4bPa6aV2M", "dHG8b7jneWJKaH33jqcKJEcxVa8pSLiTMo255WgDEbLvSJRq", "nUZNT1jL+uLIoileVsnXXTmOzb5pgnhZJeQyXmDubZhfdBZx", null };
+        public static readonly IList<string> passwords = new List<string> { "abcd", "blah", "string", null };
+        public static readonly IList<string> authTokens = new List<string> { Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), null };
         public static IList<User> users = new List<User>();
         public static int i = 999;
 
@@ -134,6 +134,66 @@ namespace SocialBackendUnitTests
                 ICookieService fakeCookie = new FakeCookieService();
                 UsersController usersController = new UsersController(context, fakeCookie);
                 var result = await usersController.login(user);
+
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(OkResult));
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNullCookieAuthorisation()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 3;
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                UsersController usersController = new UsersController(context, fakeCookie);
+                var result = await usersController.checkLoggedIn();
+
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNonAuthorisedCookieAuthorisation()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 2;
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                UsersController usersController = new UsersController(context, fakeCookie);
+                var result = await usersController.checkLoggedIn();
+
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+            }
+        }
+
+        [TestMethod]
+        public async Task TestAuthorisedCookieAuthorisation()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 1;
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                UsersController usersController = new UsersController(context, fakeCookie);
+                var result = await usersController.checkLoggedIn();
 
 
                 // Then

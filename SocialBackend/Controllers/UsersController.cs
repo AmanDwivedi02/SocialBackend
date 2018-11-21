@@ -44,7 +44,7 @@ namespace SocialBackend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUser([FromRoute] int id)
         {
-            if (_cookieService.getCookieValue(HttpContext) == "")
+            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
             }
