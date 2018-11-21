@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SocialBackend.Data;
 using SocialBackend.Models;
 
 namespace SocialBackend.Controllers
@@ -24,14 +25,17 @@ namespace SocialBackend.Controllers
         [HttpGet]
         public IEnumerable<Todo> GetTodo()
         {
-            return _context.Todo.Include(todo => todo.user);
+            return _context.Todo;
         }
 
         // GET: api/Todoes/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTodo([FromRoute] int id)
         {
-            if (!ModelState.IsValid)
+            if (Request.Cookies["cookie"] == null)
+            {
+                return Unauthorized();
+            } else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -45,21 +49,34 @@ namespace SocialBackend.Controllers
 
             _context.Entry(todo).Reference(t => t.user).Load();
 
-            Todo test = todo;
+            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            if (localUser == null)
+            {
+                return Unauthorized();
+            } else
+            {
+                if (localUser.authToken != todo.user.authToken)
+                {
+                    return Unauthorized();
+                }
+            }
 
-            test.user.username = null;
-            test.user.password = null;
-            test.user.emailAddress = null;
-            test.user.authToken = null;
+            todo.user.username = null;
+            todo.user.password = null;
+            todo.user.emailAddress = null;
+            todo.user.authToken = null;
 
-            return Ok(test);
+            return Ok(todo);
         }
 
         // PUT: api/Todoes/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTodo([FromRoute] int id, [FromBody] Todo todo)
         {
-            if (!ModelState.IsValid)
+            if (Request.Cookies["cookie"] == null)
+            {
+                return Unauthorized();
+            } else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -67,6 +84,25 @@ namespace SocialBackend.Controllers
             if (id != todo.id)
             {
                 return BadRequest();
+            }
+
+            todo.user = await _context.User.FindAsync(todo.user.id);
+            if (todo.user == null)
+            {
+                return NotFound();
+            }
+
+            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            if (localUser == null)
+            {
+                return Unauthorized();
+            }
+            else
+            {
+                if (localUser.authToken != todo.user.authToken)
+                {
+                    return Unauthorized();
+                }
             }
 
             _context.Entry(todo).State = EntityState.Modified;
@@ -94,22 +130,44 @@ namespace SocialBackend.Controllers
         [HttpPost]
         public async Task<IActionResult> PostTodo([FromBody] Todo todo)
         {
-            if (!ModelState.IsValid)
+            if (Request.Cookies["cookie"] == null)
+            {
+                return Unauthorized();
+            } else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
+            todo.user = await _context.User.FindAsync(todo.user.id);
+            if (todo.user == null)
+            {
+                return NotFound();
+            }
+            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            if (localUser == null)
+            {
+                return Unauthorized();
+            }
+            else
+            {
+                if (localUser.authToken != todo.user.authToken)
+                {
+                    return Unauthorized();
+                }
+            }
             _context.Todo.Add(todo);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetTodo", new { id = todo.id }, todo);
+            return Created("GetTodo", new { id = todo.id });
         }
 
         // DELETE: api/Todoes/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTodo([FromRoute] int id)
         {
-            if (!ModelState.IsValid)
+            if (Request.Cookies["cookie"] == null)
+            {
+                return Unauthorized();
+            } else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -118,6 +176,21 @@ namespace SocialBackend.Controllers
             if (todo == null)
             {
                 return NotFound();
+            }
+
+            _context.Entry(todo).Reference(t => t.user).Load();
+
+            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            if (localUser == null)
+            {
+                return Unauthorized();
+            }
+            else
+            {
+                if (localUser.authToken != todo.user.authToken)
+                {
+                    return Unauthorized();
+                }
             }
 
             _context.Todo.Remove(todo);
