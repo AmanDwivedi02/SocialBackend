@@ -86,7 +86,7 @@ namespace SocialBackendUnitTests
                     task = tasks[0],
                     dueDate = dueDates[0],
                     complete = completes[0],
-                    user = users[0]
+                    user = context.User.Where(u => u.username == users[0].username).AsNoTracking().FirstOrDefault()
 
                 };
                 todos.Add(todoA);
@@ -96,7 +96,7 @@ namespace SocialBackendUnitTests
                     task = tasks[1],
                     dueDate = dueDates[1],
                     complete = completes[1],
-                    user = users[1]
+                    user = context.User.Where(u => u.username == users[1].username).AsNoTracking().FirstOrDefault()
 
                 };
                 todos.Add(todoB);
@@ -137,6 +137,7 @@ namespace SocialBackendUnitTests
                 // Then
                 Assert.IsNotNull(result);
                 Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
             }
         }
 
@@ -158,6 +159,7 @@ namespace SocialBackendUnitTests
                 // Then
                 Assert.IsNotNull(result);
                 Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
             }
         }
 
@@ -185,6 +187,7 @@ namespace SocialBackendUnitTests
 
                 Assert.IsNotNull(todo);
                 Assert.IsTrue(todo.Count == 1);
+                Assert.AreEqual(2, context.Todo.Count());
             }
         }
 
@@ -211,6 +214,7 @@ namespace SocialBackendUnitTests
                 // Then
                 Assert.IsNotNull(result);
                 Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
             }
         }
 
@@ -241,6 +245,7 @@ namespace SocialBackendUnitTests
                 // Then
                 Assert.IsNotNull(result);
                 Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
             }
         }
 
@@ -279,6 +284,7 @@ namespace SocialBackendUnitTests
                 Assert.AreEqual(dbTodo.dueDate, updatedDbTodo.dueDate);
                 Assert.AreNotEqual(dbTodo.complete, updatedDbTodo.complete);
 
+                Assert.AreEqual(2, context.Todo.Count());
             }
         }
 
@@ -305,6 +311,7 @@ namespace SocialBackendUnitTests
                 // Then
                 Assert.IsNotNull(result);
                 Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
 
             }
         }
@@ -331,6 +338,7 @@ namespace SocialBackendUnitTests
                 // Then
                 Assert.IsNotNull(result);
                 Assert.IsInstanceOfType(result, typeof(BadRequestResult));
+                Assert.AreEqual(2, context.Todo.Count());
 
             }
         }
@@ -372,6 +380,131 @@ namespace SocialBackendUnitTests
                 Assert.AreEqual(newTodo.user.username, users[i].username);
                 Assert.AreEqual(newTodo.user.password, users[i].password);
                 Assert.AreEqual(newTodo.user.online, users[i].online);
+
+                Assert.AreEqual(3, context.Todo.Count());
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNullCookieDelete()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 3; //for null cookie
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.DeleteTodo((await context.Todo.AsNoTracking().FirstOrDefaultAsync()).id) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
+
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNonExistantDelete()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 1; //for authorised user
+                IQueryable<Todo> _todo = from t in context.Todo
+                                         orderby t.id descending
+                                         select t;
+                var dbTodo = await _todo.AsNoTracking().FirstOrDefaultAsync(); // last TodoItem in db
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.DeleteTodo(dbTodo.id + 1) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(NotFoundResult));
+                Assert.AreEqual(2, context.Todo.Count());
+            }
+        }
+
+        [TestMethod]
+        public async Task TestDeleteOtherUsersTask()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 0; //for authorised user
+                IQueryable<Todo> _todo = from t in context.Todo
+                                         orderby t.id descending
+                                         select t;
+                var dbTodo = await _todo.AsNoTracking().FirstOrDefaultAsync(); // todoItem belonging to different user
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.DeleteTodo(dbTodo.id) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
+            }
+        }
+
+        [TestMethod]
+        public async Task TestDeleteNonDbAuthToken()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 2; //for non existant user with a valid authtoken
+                IQueryable<Todo> _todo = from t in context.Todo
+                                         orderby t.id descending
+                                         select t;
+                var dbTodo = await _todo.AsNoTracking().FirstOrDefaultAsync();
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.DeleteTodo(dbTodo.id) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+                Assert.AreEqual(2, context.Todo.Count());
+            }
+        }
+
+        [TestMethod]
+        public async Task TestDelete()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 0; // exisiting user
+                var dbTodo = await context.Todo.AsNoTracking().Where(t => t.user.username == usernames[i]).FirstOrDefaultAsync(); // existing todo
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.DeleteTodo(dbTodo.id) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+                Assert.AreEqual(1, context.Todo.Count());
+                Assert.AreEqual(2, context.User.Count());
+
+                var okObject = result as OkObjectResult;
+                var deletedItem = okObject.Value as Todo;
+
+                Assert.AreEqual(dbTodo.id, deletedItem.id);
+                Assert.AreEqual(dbTodo.task, deletedItem.task);
+                Assert.AreEqual(dbTodo.complete, deletedItem.complete);
+                Assert.AreEqual(dbTodo.dueDate, deletedItem.dueDate);
             }
         }
     }
