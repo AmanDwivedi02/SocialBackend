@@ -125,7 +125,7 @@ namespace SocialBackendUnitTests
             using (var context = new SocialBackendContext(options))
             {
                 // Given
-                i = 2; // user does not currently exists in db
+                i = 2; //
                 string username = usernames[i];
                 string password = passwords[i];
 
@@ -146,7 +146,7 @@ namespace SocialBackendUnitTests
             using (var context = new SocialBackendContext(options))
             {
                 // Given
-                i = 3; // user does not currently exists in db
+                i = 3; //
                 string username = usernames[i];
                 string password = passwords[i];
 
@@ -167,7 +167,7 @@ namespace SocialBackendUnitTests
             using (var context = new SocialBackendContext(options))
             {
                 // Given
-                i = 0; // user does not currently exists in db
+                i = 0; //
                 string username = usernames[i];
                 string password = passwords[i];
 
@@ -185,6 +185,100 @@ namespace SocialBackendUnitTests
 
                 Assert.IsNotNull(todo);
                 Assert.IsTrue(todo.Count == 1);
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNullCookiePut()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 2; // task does not currently exists in db
+                Todo updatedTodo = new Todo()
+                {
+                    id = (await context.Todo.AsNoTracking().FirstAsync()).id,
+                    task = tasks[i],
+                    complete = completes[i],
+                    dueDate = dueDates[i]
+                };
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.UpdateTask((await context.Todo.AsNoTracking().FirstAsync()).id, updatedTodo) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+            }
+        }
+
+        [TestMethod]
+        public async Task TestEditOtherUsersTask()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 0; //
+                IQueryable<Todo> _todo = from t in context.Todo
+                                         orderby t.id ascending
+                                         select t;
+                var dbTodo = await _todo.AsNoTracking().FirstOrDefaultAsync();
+                Todo updatedTodo = new Todo()
+                {
+                    id = dbTodo.id+1,
+                    task = tasks[i],
+                    complete = completes[i],
+                    dueDate = dueDates[i]
+                };
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.UpdateTask(dbTodo.id+1, updatedTodo) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+            }
+        }
+
+        [TestMethod]
+        public async Task TestEditTodo()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 0; //
+                IQueryable<Todo> _todo = from t in context.Todo
+                                         orderby t.id ascending
+                                         select t;
+                var dbTodo = await _todo.AsNoTracking().FirstOrDefaultAsync();
+                Todo updatedTodo = new Todo()
+                {
+                    id = dbTodo.id,
+                    task = tasks[i],
+                    complete = !completes[i],
+                    dueDate = dueDates[i]
+                };
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.UpdateTask(dbTodo.id, updatedTodo) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(NoContentResult));
+
+                var updatedDbTodo = await _todo.AsNoTracking().FirstOrDefaultAsync();
+
+                Assert.AreEqual(dbTodo.id, updatedDbTodo.id);
+                Assert.AreEqual(dbTodo.task, updatedDbTodo.task);
+                Assert.AreEqual(dbTodo.dueDate, updatedDbTodo.dueDate);
+                Assert.AreNotEqual(dbTodo.complete, updatedDbTodo.complete);
+
             }
         }
     }

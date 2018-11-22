@@ -38,55 +38,15 @@ namespace SocialBackend.Controllers
             return Ok(await _context.Todo.Where(t => t.user.authToken == _cookieService.getCookieValue(HttpContext)).ToListAsync());
         }
 
-        // GET: api/Todoes/5
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetTodo([FromRoute] int id)
-        {
-            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
-            {
-                return Unauthorized();
-            } else if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var todo = await _context.Todo.FindAsync(id);
-
-            if (todo == null)
-            {
-                return NotFound();
-            }
-
-            _context.Entry(todo).Reference(t => t.user).Load();
-
-            var localUser = await _context.User.Where(u => u.authToken == _cookieService.getCookieValue(HttpContext)).FirstOrDefaultAsync();
-            if (localUser == null)
-            {
-                return Unauthorized();
-            } else
-            {
-                if (localUser.authToken != todo.user.authToken)
-                {
-                    return Unauthorized();
-                }
-            }
-
-            todo.user.username = null;
-            todo.user.password = null;
-            todo.user.emailAddress = null;
-            todo.user.authToken = null;
-
-            return Ok(todo);
-        }
-
         // PUT: api/Todoes/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutTodo([FromRoute] int id, [FromBody] Todo todo)
+        public async Task<IActionResult> UpdateTask([FromRoute] int id, [FromBody] Todo todo)
         {
             if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
-            } else if (!ModelState.IsValid)
+            }
+            else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -95,12 +55,7 @@ namespace SocialBackend.Controllers
             {
                 return BadRequest();
             }
-
-            todo.user = await _context.User.FindAsync(todo.user.id);
-            if (todo.user == null)
-            {
-                return NotFound();
-            }
+            var originalTodo = await _context.Todo.Where(t => t.id == id).AsNoTracking().Include(t => t.user).FirstOrDefaultAsync();
 
             var localUser = await _context.User.Where(u => u.authToken == _cookieService.getCookieValue(HttpContext)).FirstOrDefaultAsync();
             if (localUser == null)
@@ -109,11 +64,13 @@ namespace SocialBackend.Controllers
             }
             else
             {
-                if (localUser.authToken != todo.user.authToken)
+                if (localUser.authToken != originalTodo.user.authToken)
                 {
                     return Unauthorized();
                 }
             }
+
+            todo.user = localUser;
 
             _context.Entry(todo).State = EntityState.Modified;
 
