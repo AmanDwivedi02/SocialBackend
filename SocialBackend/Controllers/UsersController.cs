@@ -40,33 +40,6 @@ namespace SocialBackend.Controllers
             return Unauthorized();
         }
 
-        // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUser([FromRoute] int id)
-        {
-            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
-            {
-                return Unauthorized();
-            }
-            else if (!await checkAuthorisation(_cookieService.getCookieValue(HttpContext)))
-            {
-                return Unauthorized();
-            }
-            else if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var user = await _context.User.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(user);
-        }
-
         // PUT: api/Users/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser([FromRoute] int id, [FromBody] User user)
