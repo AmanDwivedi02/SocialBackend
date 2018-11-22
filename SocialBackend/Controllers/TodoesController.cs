@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SocialBackend.Data;
 using SocialBackend.Models;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SocialBackend.Controllers
 {
@@ -100,27 +97,17 @@ namespace SocialBackend.Controllers
             if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
-            } else if (!ModelState.IsValid)
+            }
+            else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
-            }
-            todo.user = await _context.User.FindAsync(todo.user.id);
-            if (todo.user == null)
-            {
-                return NotFound();
             }
             var localUser = await _context.User.Where(u => u.authToken == _cookieService.getCookieValue(HttpContext)).FirstOrDefaultAsync();
             if (localUser == null)
             {
-                return Unauthorized();
+                return BadRequest();
             }
-            else
-            {
-                if (localUser.authToken != todo.user.authToken)
-                {
-                    return Unauthorized();
-                }
-            }
+            todo.user = localUser;
             _context.Todo.Add(todo);
             await _context.SaveChangesAsync();
 
@@ -134,7 +121,8 @@ namespace SocialBackend.Controllers
             if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
-            } else if (!ModelState.IsValid)
+            }
+            else if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }

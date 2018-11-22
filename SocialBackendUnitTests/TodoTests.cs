@@ -227,7 +227,7 @@ namespace SocialBackendUnitTests
                 var dbTodo = await _todo.AsNoTracking().FirstOrDefaultAsync();
                 Todo updatedTodo = new Todo()
                 {
-                    id = dbTodo.id+1,
+                    id = dbTodo.id + 1,
                     task = tasks[i],
                     complete = completes[i],
                     dueDate = dueDates[i]
@@ -236,7 +236,7 @@ namespace SocialBackendUnitTests
                 //When
                 ICookieService fakeCookie = new FakeCookieService();
                 TodoesController todoController = new TodoesController(context, fakeCookie);
-                var result = await todoController.UpdateTask(dbTodo.id+1, updatedTodo) as IActionResult;
+                var result = await todoController.UpdateTask(dbTodo.id + 1, updatedTodo) as IActionResult;
 
                 // Then
                 Assert.IsNotNull(result);
@@ -279,6 +279,99 @@ namespace SocialBackendUnitTests
                 Assert.AreEqual(dbTodo.dueDate, updatedDbTodo.dueDate);
                 Assert.AreNotEqual(dbTodo.complete, updatedDbTodo.complete);
 
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNullCookiePost()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 2; // task and user does not currently exists in db
+                Todo newTodo = new Todo()
+                {
+                    task = tasks[i],
+                    complete = completes[i],
+                    dueDate = dueDates[i]
+                };
+                i = 3; //for null cookie
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.PostTodo(newTodo) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(UnauthorizedResult));
+
+            }
+        }
+
+        [TestMethod]
+        public async Task TestNonExistantUserPost()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 2; // task and user does not currently exists in db
+                Todo newTodo = new Todo()
+                {
+                    task = tasks[i],
+                    complete = completes[i],
+                    dueDate = dueDates[i]
+                };
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.PostTodo(newTodo) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(BadRequestResult));
+
+            }
+        }
+
+        [TestMethod]
+        public async Task TestPost()
+        {
+            using (var context = new SocialBackendContext(options))
+            {
+                // Given
+                i = 2; //task 2 doesn't esists in db
+                Todo newTodo = new Todo()
+                {
+                    task = tasks[i],
+                    complete = completes[i],
+                    dueDate = dueDates[i]
+                };
+                i = 1; // user 1 exists
+
+                //When
+                ICookieService fakeCookie = new FakeCookieService();
+                TodoesController todoController = new TodoesController(context, fakeCookie);
+                var result = await todoController.PostTodo(newTodo) as IActionResult;
+
+                // Then
+                Assert.IsNotNull(result);
+                Assert.IsInstanceOfType(result, typeof(CreatedResult));
+
+                IQueryable<Todo> _todo = from t in context.Todo
+                                         orderby t.id descending
+                                         select t;
+                var newestTodo = await _todo.AsNoTracking().FirstOrDefaultAsync();
+
+                Assert.AreEqual(newTodo.task, newestTodo.task);
+                Assert.AreEqual(newTodo.complete, newestTodo.complete);
+                Assert.AreEqual(newTodo.dueDate, newestTodo.dueDate);
+
+                Assert.AreEqual(newTodo.user.emailAddress, users[i].emailAddress);
+                Assert.AreEqual(newTodo.user.username, users[i].username);
+                Assert.AreEqual(newTodo.user.password, users[i].password);
+                Assert.AreEqual(newTodo.user.online, users[i].online);
             }
         }
     }
