@@ -15,24 +15,34 @@ namespace SocialBackend.Controllers
     public class TodoesController : ControllerBase
     {
         private readonly SocialBackendContext _context;
+        private readonly ICookieService _cookieService;
 
-        public TodoesController(SocialBackendContext context)
+        public TodoesController(SocialBackendContext context, ICookieService cookieService)
         {
             _context = context;
+            _cookieService = cookieService;
         }
 
         // GET: api/Todoes
         [HttpGet]
-        public IEnumerable<Todo> GetTodo()
+        public async Task<IActionResult> GetTodo()
         {
-            return _context.Todo;
+            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
+            {
+                return Unauthorized();
+            }
+            if (!await checkAuthorisation(_cookieService.getCookieValue(HttpContext)))
+            {
+                return Unauthorized();
+            }
+            return Ok(await _context.Todo.Where(t => t.user.authToken == _cookieService.getCookieValue(HttpContext)).ToListAsync());
         }
 
         // GET: api/Todoes/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTodo([FromRoute] int id)
         {
-            if (Request.Cookies["cookie"] == null)
+            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
             } else if (!ModelState.IsValid)
@@ -49,7 +59,7 @@ namespace SocialBackend.Controllers
 
             _context.Entry(todo).Reference(t => t.user).Load();
 
-            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            var localUser = await _context.User.Where(u => u.authToken == _cookieService.getCookieValue(HttpContext)).FirstOrDefaultAsync();
             if (localUser == null)
             {
                 return Unauthorized();
@@ -73,7 +83,7 @@ namespace SocialBackend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTodo([FromRoute] int id, [FromBody] Todo todo)
         {
-            if (Request.Cookies["cookie"] == null)
+            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
             } else if (!ModelState.IsValid)
@@ -92,7 +102,7 @@ namespace SocialBackend.Controllers
                 return NotFound();
             }
 
-            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            var localUser = await _context.User.Where(u => u.authToken == _cookieService.getCookieValue(HttpContext)).FirstOrDefaultAsync();
             if (localUser == null)
             {
                 return Unauthorized();
@@ -130,7 +140,7 @@ namespace SocialBackend.Controllers
         [HttpPost]
         public async Task<IActionResult> PostTodo([FromBody] Todo todo)
         {
-            if (Request.Cookies["cookie"] == null)
+            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
             } else if (!ModelState.IsValid)
@@ -142,7 +152,7 @@ namespace SocialBackend.Controllers
             {
                 return NotFound();
             }
-            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            var localUser = await _context.User.Where(u => u.authToken == _cookieService.getCookieValue(HttpContext)).FirstOrDefaultAsync();
             if (localUser == null)
             {
                 return Unauthorized();
@@ -164,7 +174,7 @@ namespace SocialBackend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTodo([FromRoute] int id)
         {
-            if (Request.Cookies["cookie"] == null)
+            if (string.IsNullOrEmpty(_cookieService.getCookieValue(HttpContext)))
             {
                 return Unauthorized();
             } else if (!ModelState.IsValid)
@@ -180,7 +190,7 @@ namespace SocialBackend.Controllers
 
             _context.Entry(todo).Reference(t => t.user).Load();
 
-            var localUser = await _context.User.Where(u => u.authToken == Request.Cookies["cookie"]).FirstOrDefaultAsync();
+            var localUser = await _context.User.Where(u => u.authToken == _cookieService.getCookieValue(HttpContext)).FirstOrDefaultAsync();
             if (localUser == null)
             {
                 return Unauthorized();
@@ -202,6 +212,11 @@ namespace SocialBackend.Controllers
         private bool TodoExists(int id)
         {
             return _context.Todo.Any(e => e.id == id);
+        }
+
+        private async Task<bool> checkAuthorisation(string cookieValue)
+        {
+            return await _context.User.Where(u => u.authToken == cookieValue).AnyAsync();
         }
     }
 }

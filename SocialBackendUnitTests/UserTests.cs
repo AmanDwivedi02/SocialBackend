@@ -253,8 +253,14 @@ namespace SocialBackendUnitTests
                 // Then
                 Assert.IsNotNull(result);
                 Assert.IsInstanceOfType(result, typeof(CreatedResult));
-                Assert.AreEqual(emails[i], (await context.User.LastAsync()).emailAddress);
-                Assert.AreEqual(usernames[i], (await context.User.LastAsync()).username);
+
+                IQueryable<User> _user = from u in context.User
+                                         orderby u.id descending
+                                         select u;
+                var dbUser = await _user.AsNoTracking().FirstOrDefaultAsync();
+
+                Assert.AreEqual(emails[i], dbUser.emailAddress);
+                Assert.AreEqual(usernames[i], dbUser.username);
             }
         }
 

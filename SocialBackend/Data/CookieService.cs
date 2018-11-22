@@ -10,7 +10,7 @@ namespace SocialBackend.Data
     {
         public string getCookieValue(HttpContext context)
         {
-            return context.Request.Cookies["cookie"] == null ? "" : context.Request.Cookies["cookie"];
+            return string.IsNullOrEmpty(context.Request.Cookies["cookie"]) || string.IsNullOrWhiteSpace(context.Request.Cookies["cookie"]) ? "" : context.Request.Cookies["cookie"];
         }
 
         public void setCookie(HttpContext context, string authToken)
