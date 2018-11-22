@@ -47,11 +47,6 @@ namespace SocialBackendUnitTests
                     return authTokens[i];
                 }
             }
-            public void setCookie(HttpContext context, string authToken)
-            {
-                authTokens[i] = authToken;
-                return;
-            }
         }
 
         [TestInitialize]

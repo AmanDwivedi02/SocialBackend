@@ -7,14 +7,7 @@ namespace SocialBackend.Data
     {
         public string getCookieValue(HttpContext context)
         {
-            return string.IsNullOrEmpty(context.Request.Cookies["cookie"]) || string.IsNullOrWhiteSpace(context.Request.Cookies["cookie"]) ? "" : context.Request.Cookies["cookie"];
-        }
-
-        public void setCookie(HttpContext context, string authToken)
-        {
-            CookieOptions options = new CookieOptions();
-            options.Expires = DateTime.Now.AddHours(1);
-            context.Response.Cookies.Append("cookie", authToken, options);
+            return string.IsNullOrEmpty(context.Request.Headers["token"].ToString()) || string.IsNullOrWhiteSpace(context.Request.Headers["token"].ToString()) ? "" : context.Request.Headers["token"].ToString();
         }
     }
 }

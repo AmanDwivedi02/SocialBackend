@@ -123,9 +123,7 @@ namespace SocialBackend.Controllers
             _context.User.Add(user);
             await _context.SaveChangesAsync();
 
-            _cookieService.setCookie(HttpContext, user.authToken);
-
-            return Created("GetUser", new { id = user.id });
+            return Created("GetUser", new { id = user.id, authToken = user.authToken });
         }
 
         // POST: api/Users/login
@@ -150,9 +148,7 @@ namespace SocialBackend.Controllers
                 return NotFound();
             }
 
-            _cookieService.setCookie(HttpContext, localUser.authToken);
-
-            return Ok();
+            return Ok(new { authToken = localUser.authToken });
         }
 
         // DELETE: api/Users/5

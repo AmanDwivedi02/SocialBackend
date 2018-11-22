@@ -137,7 +137,15 @@ namespace SocialBackendUnitTests
 
                 // Then
                 Assert.IsNotNull(result);
-                Assert.IsInstanceOfType(result, typeof(OkResult));
+                Assert.IsInstanceOfType(result, typeof(OkObjectResult));
+
+                var okObject = result as OkObjectResult;
+                var returnedObject = okObject.Value;
+
+                var v = returnedObject?.GetType().GetProperty("authToken")?.GetValue(returnedObject, null).ToString();
+                Assert.IsNotNull(v);
+                Assert.AreEqual(authTokens[i], v);
+
             }
         }
 
