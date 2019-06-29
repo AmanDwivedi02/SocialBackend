@@ -1,4 +1,5 @@
 ﻿using System;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialBackend.Migrations
@@ -12,7 +13,8 @@ namespace SocialBackend.Migrations
                 columns: table => new
                 {
                     id = table.Column<int>(nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
+                        .Annotation("Autoincrement", true)
+                        .Annotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn),
                     username = table.Column<string>(nullable: true),
                     emailAddress = table.Column<string>(nullable: true),
                     password = table.Column<string>(nullable: true),
@@ -29,7 +31,8 @@ namespace SocialBackend.Migrations
                 columns: table => new
                 {
                     id = table.Column<int>(nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
+                        .Annotation("Autoincrement", true)
+                        .Annotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn),
                     task = table.Column<string>(nullable: true),
                     dueDate = table.Column<DateTime>(nullable: false),
                     complete = table.Column<bool>(nullable: false),

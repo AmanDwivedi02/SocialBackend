@@ -35,8 +35,11 @@ namespace SocialBackend
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
+            /*services.AddDbContext<SocialBackendContext>(options =>
+                    options.UseSqlite(Configuration.GetConnectionString("SocialBackendContext")));*/
+
             services.AddDbContext<SocialBackendContext>(options =>
-                    options.UseSqlite(Configuration.GetConnectionString("SocialBackendContext")));
+                    options.UseSqlServer(Configuration.GetConnectionString("SocialSQLContext")));
 
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen(c =>
